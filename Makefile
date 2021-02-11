@@ -17,6 +17,7 @@ GO_PACKAGE        = github.com/gustvision/powder-interview
 API               = api
 INTEGRATION       = integration
 
+
 .PHONY: all
 all: api
 
@@ -43,12 +44,18 @@ integration:  ## Build integration binary
 .PHONY: migrate
 migrate:  ## Migrate sql db
 	$(info $(M) migrate…) @
-	$Q psql --host=0.0.0.0 --user=postgres postgres -f migrations/00.sql
+	$Q docker exec backend-interview-db psql --host=0.0.0.0 --user=postgres postgres -f migrations/00.sql
 
 .PHONY: populate
 populate:  ## Populate sql db with test data
 	$(info $(M) populate…) @
-	$Q psql --host=0.0.0.0 --user=postgres postgres -f migrations/populate.sql
+	$Q docker exec backend-interview-db psql --host=0.0.0.0 --user=postgres postgres -f migrations/populate.sql
+
+.PHONY: clean
+clean:  ## Clean all test data in sql db
+	$(info $(M) clean…) @
+	$Q docker exec backend-interview-db psql --host=0.0.0.0 --user=postgres postgres -f migrations/clean.sql
+
 
 # Vendor
 .PHONY: vendor

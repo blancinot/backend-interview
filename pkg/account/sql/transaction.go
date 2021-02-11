@@ -66,3 +66,36 @@ func (s *Store) FetchManyTransaction(
 
 	return rows.Err()
 }
+
+func (s *Store) FetchMaxTransaction(
+	ctx context.Context,
+	f account.FilterTransaction,
+	from, to int64,
+) (account.Transaction, error) {
+
+	b := strings.Builder{}
+	b.WriteString(`SELECT t.id, t.amount, t.account_id, t.created_at `)
+	b.WriteString(`FROM transaction t `)
+	b.WriteString(`INNER JOIN account a ON a.id = t.account_id `)
+	b.WriteString(`WHERE a.user_id = $1 AND t.created_at >= $2 AND t.created_at <= $3 `)
+	b.WriteString(`ORDER BY t.amount DESC `)
+	b.WriteString(`LIMIT 1;`)
+
+	row := s.QueryRowContext(ctx, b.String(), []interface{}{
+		f.UserID,
+		from,
+		to,
+	}...)
+
+	var transaction account.Transaction
+	if err := row.Scan(
+		&transaction.ID,
+		&transaction.Amount,
+		&transaction.AccountID,
+		&transaction.CreatedAt,
+	); err != nil {
+		return account.Transaction{}, err
+	}
+
+	return transaction, nil
+}

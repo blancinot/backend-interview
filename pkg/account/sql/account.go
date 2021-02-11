@@ -9,29 +9,30 @@ import (
 
 func (s *Store) Fetch(ctx context.Context, f account.Filter) (account.Account, error) {
 	b := strings.Builder{}
-	b.WriteString(`SELECT id, user_id `)
+	b.WriteString(`SELECT id, user_id, total `)
 	b.WriteString(`FROM account `)
-	b.WriteString(`WHERE user_id = $1 ;`)
+	b.WriteString(`WHERE id = $1 ;`)
 
 	row := s.QueryRowContext(ctx, b.String(), []interface{}{
-		f.UserID,
-	})
+		f.ID,
+	}...)
 
 	var a account.Account
 
 	if err := row.Scan(
 		&a.ID,
 		&a.UserID,
+		&a.Total,
 	); err != nil {
 		return account.Account{}, err
 	}
 
-	return a, row.Err()
+	return a, nil
 }
 
 func (s *Store) FetchMany(ctx context.Context, f account.Filter, callback func(account.Account) error) error {
 	b := strings.Builder{}
-	b.WriteString(`SELECT id, user_id `)
+	b.WriteString(`SELECT id, user_id, total `)
 	b.WriteString(`FROM account `)
 	b.WriteString(`WHERE user_id = $1 ;`)
 
@@ -50,6 +51,7 @@ func (s *Store) FetchMany(ctx context.Context, f account.Filter, callback func(a
 		if err := rows.Scan(
 			&a.ID,
 			&a.UserID,
+			&a.Total,
 		); err != nil {
 			return err
 		}
@@ -60,4 +62,20 @@ func (s *Store) FetchMany(ctx context.Context, f account.Filter, callback func(a
 	}
 
 	return rows.Err()
+}
+
+func (s *Store) UpdateAccountTotal(ctx context.Context, f account.Filter, amount float64) (total float64, err error) {
+	b := strings.Builder{}
+	b.WriteString(`UPDATE account `)
+	b.WriteString(`SET total = total + $2 `)
+	b.WriteString(`WHERE id = $1 `)
+	b.WriteString(`RETURNING total ;`)
+
+	row := s.QueryRowContext(ctx, b.String(), []interface{}{
+		f.ID,
+		amount,
+	}...)
+
+	err = row.Scan(&total)
+	return
 }
